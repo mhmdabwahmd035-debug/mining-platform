@@ -1,10 +1,83 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Mining Platform</title>
-</head>
-<body>
-  <h1>منصة التعدين شغالة 🔥</h1>
-</body>
-</html>
+-- Enable extension for UUID
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- =========================
+-- USERS TABLE
+-- =========================
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  referral_code TEXT UNIQUE NOT NULL,
+  referred_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  balance NUMERIC DEFAULT 0,
+  withdrawable_balance NUMERIC DEFAULT 0,
+  last_withdraw_at TIMESTAMP,
+  role TEXT DEFAULT 'user',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =========================
+-- PLANS TABLE
+-- =========================
+CREATE TABLE IF NOT EXISTS plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  price NUMERIC NOT NULL,
+  daily_percent NUMERIC NOT NULL,
+  duration_days INT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =========================
+-- USER CONTRACTS
+-- =========================
+CREATE TABLE IF NOT EXISTS user_contracts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  plan_id UUID REFERENCES plans(id) ON DELETE CASCADE,
+  start_date TIMESTAMP DEFAULT NOW(),
+  end_date TIMESTAMP,
+  total_earned NUMERIC DEFAULT 0,
+  status TEXT DEFAULT 'active'
+);
+
+-- =========================
+-- DEPOSITS
+-- =========================
+CREATE TABLE IF NOT EXISTS deposits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  network TEXT CHECK (network IN ('TRC20','BEP20')),
+  amount NUMERIC NOT NULL,
+  tx_hash TEXT,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =========================
+-- WITHDRAW REQUESTS
+-- =========================
+CREATE TABLE IF NOT EXISTS withdraw_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  amount NUMERIC NOT NULL,
+  network TEXT CHECK (network IN ('TRC20','BEP20')),
+  address TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  requested_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =========================
+-- TICKETS
+-- =========================
+CREATE TABLE IF NOT EXISTS tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  subject TEXT,
+  message TEXT,
+  status TEXT DEFAULT 'open',
+  admin_reply TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
